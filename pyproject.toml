@@ -1,0 +1,224 @@
+# https://peps.python.org/pep-0517/
+[build-system]
+requires = ["hatchling>=1.8.0", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+# https://peps.python.org/pep-0621/
+[project]
+name = "pulser"
+description = "A library of psygnal generators"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "BSD 3-Clause License" }
+authors = [{ name = "Kyle Harrington", email = "pulser@kyleharrington.com" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["version"]
+dependencies = [
+    "mypy_extensions",
+    "importlib_metadata ; python_version < '3.8'",
+    "pygame",
+]
+
+# extras
+# https://peps.python.org/pep-0621/#dependencies-optional-dependencies
+[project.optional-dependencies]
+dev = [
+    "black",
+    "cruft",
+    "dask",
+    "ruff",
+    "ipython",
+    "mypy",
+    "numpy",
+    "pre-commit",
+    "pydantic",
+    "PyQt5",
+    "pytest-cov",
+    "pytest-qt",
+    "pytest",
+    "qtpy",
+    "rich",
+    "wrapt",
+]
+docs = [
+    "griffe==0.25.5",
+    "mkdocs-material==8.5.10",
+    "mkdocs-minify-plugin",
+    "mkdocs==1.4.2",
+    "mkdocstrings-python==0.8.3",
+    "mkdocstrings==0.20.0",
+    "mkdocs-spellcheck[all]"
+]
+proxy = ["wrapt"]
+pydantic = ["pydantic"]
+test = [
+    "dask",
+    "numpy",
+    "pydantic",
+    "pyinstaller>=4.0",
+    "pytest>=6.0",
+    "pytest-codspeed",
+    "pytest-cov",
+    "wrapt",
+    "msgspec ; python_version >= '3.8'",
+]
+testqt = ["pytest-qt", "qtpy"]
+
+[project.urls]
+homepage = "https://github.com/kephale/pulser"
+repository = "https://github.com/kephale/pulser"
+documentation = "https://kyleharrington.com"
+
+#[project.entry-points.pyinstaller40]
+#hook-dirs = "psygnal._pyinstaller_util._pyinstaller_hook:get_hook_dirs"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "CHANGELOG.md"]
+
+[tool.hatch.build.targets.wheel]
+only-include = ["src"]
+sources = ["src"]
+
+# [tool.hatch.build.targets.wheel.hooks.mypyc]
+# mypy-args = ["--ignore-missing-imports"]
+# enable-by-default = false
+# require-runtime-dependencies = true
+# dependencies = [
+#     "hatch-mypyc>=0.13.0",
+#     "mypy>=0.991",
+#     "pydantic",
+#     "types-attrs",
+#     "msgspec ; python_version >= '3.8'",
+# ]
+# include = [
+#     "src/psygnal/_dataclass_utils.py",
+#     "src/psygnal/_evented_decorator.py",
+#     "src/psygnal/_group_descriptor.py",
+#     "src/psygnal/_group.py",
+#     "src/psygnal/_signal.py",
+#     "src/psygnal/_throttler.py",
+#     "src/psygnal/_weak_callback.py",
+# ]
+
+[tool.cibuildwheel]
+# Skip 32-bit builds & PyPy wheels on all platforms
+skip = ["*-manylinux_i686", "*-musllinux_i686", "*-win32", "pp*"]
+test-extras = ["test"]
+test-command = "pytest {project}/tests -v"
+test-skip = "*-musllinux*"
+
+[tool.cibuildwheel.environment]
+HATCH_BUILD_HOOKS_ENABLE = "1"
+
+
+# https://github.com/charliermarsh/ruff
+[tool.ruff]
+line-length = 88
+target-version = "py37"
+src = ["src", "tests"]
+extend-select = [
+    "E",  # style errors
+    "F",  # flakes
+    "D",  # pydocstyle
+    "I",  # isort
+    "UP", # pyupgrade
+    # "N",  # pep8-naming
+    "S",    # bandit
+    "C4",   # flake8-comprehensions
+    "B",    # flake8-bugbear
+    "A001", # flake8-builtins
+    "TID",  # flake8-tidy-imports
+    "RUF",  # ruff-specific rules
+]
+extend-ignore = [
+    "D100", # Missing docstring in public module
+    "D107", # Missing docstring in __init__
+    "D203", # 1 blank line required before class docstring
+    "D212", # Multi-line docstring summary should start at the first line
+    "D213", # Multi-line docstring summary should start at the second line
+    "D401", # First line should be in imperative mood
+    "D413", # Missing blank line after last section
+    "D416", # Section name should end with a colon
+]
+
+[tool.ruff.per-file-ignores]
+"tests/*.py" = ["D", "S101"]
+"benchmarks/*.py" = ["D"]
+"setup.py" = ["D"]
+
+
+# https://docs.pytest.org/en/6.2.x/customize.html
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+filterwarnings = [
+    "error",
+    "ignore:The distutils package is deprecated:DeprecationWarning:",
+    "ignore:.*BackendFinder.find_spec()", # pyinstaller import
+]
+
+# https://mypy.readthedocs.io/en/stable/config_file.html
+[tool.mypy]
+files = "src/**/*.py"
+strict = true
+disallow_any_generics = false
+disallow_subclassing_any = false
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["numpy.*", "wrapt", "pydantic.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# msgspec is only available on Python 3.8+ ... so we need to ignore it
+module = ["wrapt", "msgspec"]
+ignore_missing_imports = true
+
+# https://coverage.readthedocs.io/en/6.4/config.html
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "@overload",
+    "except ImportError",
+    "\\.\\.\\.",
+    "raise NotImplementedError()",
+]
+[tool.coverage.run]
+source = ["src"]
+#omit = ["src/psygnal/_pyinstaller_util/hook-psygnal.py"]
+
+# https://github.com/mgedmin/check-manifest#configuration
+[tool.check-manifest]
+ignore = [
+    ".ruff_cache/**/*",
+    ".github_changelog_generator",
+    ".pre-commit-config.yaml",
+    "tests/**/*",
+    "typesafety/*",
+    ".devcontainer/*",
+    ".readthedocs.yaml",
+    "Makefile",
+    "asv.conf.json",
+    "benchmarks/*",
+    "docs/**/*",
+    "mkdocs.yml",
+    "src/**/*.c",
+    "codecov.yml",
+    "CHANGELOG.md",
+    "setup.py",
+]
