@@ -24,9 +24,10 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "mypy_extensions",
     "importlib_metadata ; python_version < '3.8'",
     "pygame",
+    "psygnal",
+    "superqt>=0.2.5",
 ]
 
 # extras

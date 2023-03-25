@@ -1,5 +1,5 @@
 import time
-from napari.qt.threading import thread_worker
+from superqt.utils import thread_worker
 from psygnal import Signal
 import pygame.midi
 import logging
