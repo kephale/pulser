@@ -11,6 +11,7 @@ from typing import Any, Callable, ClassVar, Protocol
 import toolz as tz
 import numpy as np
 
+from psygnal import evented
 from functools import partial
 
 from napari.utils.events import EmitterGroup, Event
@@ -71,6 +72,7 @@ class FlaskController:
         self.events.gyroscope()
 
 
+@evented
 @dataclass
 class RemoteBrowser:
     _NAME: str
@@ -166,24 +168,6 @@ def _block_and_read_to_attr(
 
 
 def index_view(device=None, action=None):
-    global running
-    global value
-
-    # if device:
-    #     if action == 'on':
-    #         if not running:
-    #             print('start')
-    #             running = True
-    #             threading.Thread(target=rpi_function).start()
-    #         else:
-    #             print('already running')
-    #     elif action == 'off':
-    #         if running:
-    #             print('stop')
-    #             running = False  # it should stop thread
-    #         else:
-    #             print('not running')
-
     return render_template_string(
         """<!DOCTYPE html>
    <head>
@@ -325,7 +309,7 @@ window.addEventListener("deviceorientation", handleOrientation);
 
 
 @tz.curry
-def update_view(controller=None):
+def update_view(model=None):
     accel = np.array(
         (
             float(request.form["accelerometerX"]),
@@ -342,8 +326,8 @@ def update_view(controller=None):
         )
     )
 
-    controller.accelerometer = accel
-    controller.gyroscope = gyro
+    model.accelerometer = accel
+    model.gyroscope = gyro
     #    for k, v in request.form.items():
     #        phone_controller.lookup[k] = float(v)
     return jsonify(
@@ -352,44 +336,3 @@ def update_view(controller=None):
         }
     )
 
-
-# ############ Graphics part
-import napari
-import numpy as np
-
-
-viewer = napari.Viewer(ndisplay=3)
-
-w = h = d = 100
-
-# img = np.zeros((w, h))
-img = np.random.rand(w, h, d)
-
-cx = int(w / 2)
-cy = int(h / 2)
-
-layer = viewer.add_image(img)
-
-layer.contrast_limits = [0, 1]
-layer.colormap = "viridis"
-
-listening = True
-
-my_pulser = RemoteBrowser("Phone")
-
-
-@tz.curry
-def on_event(event, pulser=my_pulser):
-    controller = pulser._controller
-    print(f"currently gyro: {controller.gyroscope} accel: {controller.accelerometer}")
-    viewer.camera.angles = controller.gyroscope * 0.1
-
-    viewer.camera.center = viewer.camera.center + controller.accelerometer[:3] * 0.1
-
-    angles = controller.gyroscope
-
-
-# phone_controller.events.gyroscope.connect(on_event)
-my_pulser._controller.events.accelerometer.connect(on_event)
-
-# napari.run()
